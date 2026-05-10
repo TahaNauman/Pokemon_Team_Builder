@@ -1,0 +1,27 @@
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+.venv/
+venv/
+env/
+
+# VS Code
+.vscode/
+
+.ipynb_checkpoints/
+*.ipynb
+
+.DS_Store
+Thumbs.db
+
+dist/
+build/
+*.egg-info/
+
+.pytest_cache/
+
+gui/assets/*.png
+gui/assets/*.gif

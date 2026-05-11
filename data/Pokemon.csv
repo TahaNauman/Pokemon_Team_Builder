@@ -164,7 +164,7 @@
 150,Mewtwo,Psychic,,680,106,110,90,154,90,130,1,True
 150,MewtwoMega Mewtwo X,Psychic,Fighting,780,106,190,100,154,100,130,1,True
 150,MewtwoMega Mewtwo Y,Psychic,,780,106,150,70,194,120,140,1,True
-151,Mew,Psychic,,600,100,100,100,100,100,100,1,False
+151,Mew,Psychic,,600,100,100,100,100,100,100,1,True
 152,Chikorita,Grass,,318,45,49,65,49,65,45,2,False
 153,Bayleef,Grass,,405,60,62,80,63,80,60,2,False
 154,Meganium,Grass,,525,80,82,100,83,100,80,2,False

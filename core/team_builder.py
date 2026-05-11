@@ -2,6 +2,9 @@ import random
 from core.type_chart import type_chart as TYPE_CHART
 
 
+# ── Issue 3: Trade evolutions ─────────────────────────────────────────────────
+# These Pokemon can only be obtained by trading so they are excluded from
+# the candidate pool. Their pre-evolutions remain available.
 TRADE_EVOLUTIONS = {
     # Kanto
     'Alakazam', 'Machamp', 'Golem', 'Gengar',
@@ -21,32 +24,39 @@ TRADE_EVOLUTIONS = {
     'Aromatisse', 'Slurpuff',
 }
 
+# ── Issue 1: Form variants ────────────────────────────────────────────────────
+# Maps alternate forms to their base form name so only one
+# appears per team.
 FORM_VARIANTS = {
-    'Aegislash-Blade':   'Aegislash',
-    'Aegislash-Shield':  'Aegislash',
-    'Wormadam-Plant':    'Wormadam',
-    'Wormadam-Sandy':    'Wormadam',
-    'Wormadam-Trash':    'Wormadam',
-    'Lycanroc-Midday':   'Lycanroc',
-    'Lycanroc-Midnight': 'Lycanroc',
-    'Lycanroc-Dusk':     'Lycanroc',
-    'Oricorio-Baile':    'Oricorio',
-    'Oricorio-Pom-Pom':  'Oricorio',
-    'Oricorio-Pau':      'Oricorio',
-    'Oricorio-Sensu':    'Oricorio',
-    'Gastrodon-East':    'Gastrodon',
-    'Gastrodon-West':    'Gastrodon',
-    'Rotom-Heat':        'Rotom',
-    'Rotom-Wash':        'Rotom',
-    'Rotom-Frost':       'Rotom',
-    'Rotom-Fan':         'Rotom',
-    'Rotom-Mow':         'Rotom',
-    'Meowstic-Male':     'Meowstic',
-    'Meowstic-Female':   'Meowstic',
-    'Wishiwashi-Solo':   'Wishiwashi',
-    'Wishiwashi-School': 'Wishiwashi',
-    'Minior-Meteor':     'Minior',
-    'Minior-Core':       'Minior',
+    'AegislashBlade Forme':   'Aegislash',
+    'AegislashShield Forme':  'Aegislash',
+    'GourgeistSmall Size':    'Gourgeist',
+    'GourgeistAverage Size':  'Gourgeist',
+    'GourgeistLarge Size':    'Gourgeist',
+    'GourgeistSuper Size':    'Gourgeist',
+    'WormadamPlant':    'Wormadam',
+    'WormadamSandy':    'Wormadam',
+    'WormadamTrash':    'Wormadam',
+    'LycanrocMidday':   'Lycanroc',
+    'LycanrocMidnight': 'Lycanroc',
+    'LycanrocDusk':     'Lycanroc',
+    'OricorioBaile':    'Oricorio',
+    'OricorioPom-Pom':  'Oricorio',
+    'OricorioPau':      'Oricorio',
+    'OricorioSensu':    'Oricorio',
+    'GastrodonEast':    'Gastrodon',
+    'GastrodonWest':    'Gastrodon',
+    'RotomHeat':        'Rotom',
+    'RotomWash':        'Rotom',
+    'RotomFrost':       'Rotom',
+    'RotomFan':         'Rotom',
+    'RotomMow':         'Rotom',
+    'MeowsticMale':     'Meowstic',
+    'MeowsticFemale':   'Meowstic',
+    'WishiwashiSolo':   'Wishiwashi',
+    'WishiwashiSchool': 'Wishiwashi',
+    'MiniorMeteor':     'Minior',
+    'MiniorCore':       'Minior',
 }
 
 
@@ -74,7 +84,7 @@ def get_starter_weaknesses(pk, final_form):
     return types, weaknesses
 
 
-def score_candidate(row, covered_weaknesses, team_types, gym_types=None):
+def score_candidate(row, covered_weaknesses, team_types, gym_types=None, elite_four_types=None):
     """
     Score a candidate Pokemon for team fit.
 
@@ -84,15 +94,20 @@ def score_candidate(row, covered_weaknesses, team_types, gym_types=None):
     -2  for each of its own weaknesses that overlap with team's existing weaknesses
     -1  for each type already on the team (discourages redundancy)
 
-    Gym coverage (secondary — reduced weight to prevent gym types
-    dominating and producing the same team every run):
+    Gym coverage (secondary):
     +1  for each gym leader type this Pokemon is strong against
     +2  for each gym leader type this Pokemon is immune to
+
+    Elite Four + Champion coverage (higher weight than gyms):
+    +2  for each Elite Four type this Pokemon is strong against
+    +3  for each Elite Four type this Pokemon is immune to
 
     +BST/600 as a tiebreaker
     """
     if gym_types is None:
         gym_types = []
+    if elite_four_types is None:
+        elite_four_types = []
 
     c_types = [row['Type 1']]
     if row['Type 2'] != 'None':
@@ -111,12 +126,19 @@ def score_candidate(row, covered_weaknesses, team_types, gym_types=None):
             elif w in chart['immune_to']:
                 score += 5
 
-        # ── Gym coverage (secondary, reduced to +1/+2) ───────────────────────
+        # ── Gym coverage (secondary, +1/+2) ─────────────────────────────────
         for g in gym_types:
             if g in chart['strong_against']:
                 score += 1
             elif g in chart['immune_to']:
                 score += 2
+
+        # ── Elite Four + Champion coverage (+2/+3) ───────────────────────────
+        for e in elite_four_types:
+            if e in chart['strong_against']:
+                score += 2
+            elif e in chart['immune_to']:
+                score += 3
 
         candidate_weaknesses.extend(chart['weak_against'])
 
@@ -137,9 +159,10 @@ def score_candidate(row, covered_weaknesses, team_types, gym_types=None):
     return score
 
 
-def build_team(pk, pk_region, final_form, types, weaknesses, evolution_families, gym_types=None, unchosen_starters=None):
+def build_team(pk, pk_region, final_form, types, weaknesses, evolution_families, gym_types=None, unchosen_starters=None, elite_four_types=None):
     """
-    Build a team of 6 Pokemon based on type coverage and gym leader coverage.
+    Build a team of 6 Pokemon based on type coverage, gym leader coverage,
+    and Elite Four + Champion coverage.
 
     Excludes:
     - Legendaries
@@ -147,8 +170,8 @@ def build_team(pk, pk_region, final_form, types, weaknesses, evolution_families,
     - Trade-only evolutions
     - Duplicate form variants (e.g. both Aegislash-Blade and Aegislash-Shield)
 
-    Issue 2 fix: randomly picks from the top 3 scoring candidates each
-    iteration so reruns produce varied teams while still being type-sound.
+    Randomly picks from the top 3 scoring candidates each iteration
+    so reruns produce varied teams while still being type-sound.
 
     Returns the final team as a list of Pokemon names.
     """
@@ -156,6 +179,8 @@ def build_team(pk, pk_region, final_form, types, weaknesses, evolution_families,
         gym_types = []
     if unchosen_starters is None:
         unchosen_starters = []
+    if elite_four_types is None:
+        elite_four_types = []
 
     # Build the set of families to block — chosen starter + unchosen starters
     blocked_families = {get_family(final_form, evolution_families)}
@@ -166,24 +191,25 @@ def build_team(pk, pk_region, final_form, types, weaknesses, evolution_families,
     # - No legendaries
     # - No blocked starter families
     # - No trade evolutions
-    # - No duplicate form variants (keep only the first occurrence per form group)
-    seen_forms = set()
+    # - One entry per evolution family (handles form variants like Aegislash
+    #   regardless of how the dataset spells their names)
+    seen_families = set(blocked_families)
     valid_indices = []
 
     for idx, row in pk_region.iterrows():
         name = row['Name']
-        form_key = FORM_VARIANTS.get(name, name)   # collapse forms to base name
+        family = get_family(name, evolution_families)
 
         if row['Legendary']:
             continue
-        if get_family(name, evolution_families) in blocked_families:
+        if family in blocked_families:
             continue
         if name in TRADE_EVOLUTIONS:
             continue
-        if form_key in seen_forms:
+        if family in seen_families:
             continue
 
-        seen_forms.add(form_key)
+        seen_families.add(family)
         valid_indices.append(idx)
 
     candidates = pk_region.loc[valid_indices].copy()
@@ -192,6 +218,10 @@ def build_team(pk, pk_region, final_form, types, weaknesses, evolution_families,
     team_types = types.copy()
     used_families = {get_family(final_form, evolution_families)}
     covered_weaknesses = set(weaknesses)
+
+    # Minimum BST threshold — excludes unevolved/weak Pokemon from being picked.
+    # Set at 400 which filters out base/mid evolutions while keeping most final forms.
+    MIN_BST = 400
 
     while len(team) < 6:
         scored = []
@@ -202,8 +232,21 @@ def build_team(pk, pk_region, final_form, types, weaknesses, evolution_families,
             if get_family(name, evolution_families) in used_families:
                 continue
 
-            s = score_candidate(row, covered_weaknesses, team_types, gym_types)
+            # Skip Pokemon below the minimum BST threshold
+            if row.get('Total', 0) < MIN_BST:
+                continue
+
+            s = score_candidate(row, covered_weaknesses, team_types, gym_types, elite_four_types)
             scored.append((s, name))
+
+        # If no candidates meet the BST threshold, fall back to all candidates
+        if not scored:
+            for idx, row in candidates.iterrows():
+                name = row['Name']
+                if get_family(name, evolution_families) in used_families:
+                    continue
+                s = score_candidate(row, covered_weaknesses, team_types, gym_types, elite_four_types)
+                scored.append((s, name))
 
         if not scored:
             print("Not enough eligible Pokemon to fill the team.")
@@ -241,21 +284,20 @@ def select_mega(pk, pk_megas, team, team_weaknesses):
     Select the best Mega Evolution for the team.
 
     Scoring per eligible Mega:
-    - BST gain normalised to a 0-1 range across all candidates  (+0 to +5)
+    - BST gain normalised to 0-5 range across all candidates
     - Type coverage improvement: +3 per team weakness the Mega's
       new types cover that the base form didn't, +5 per immunity gained
 
     Returns (base_name, mega_row) or (None, None) if no Megas available.
     """
-
-    # Build a lookup: base Pokemon name → its Mega row(s)
-    # Dataset has names like "Mega Venusaur", "Mega Charizard X", etc.
-    # We match by checking if the base name appears in the Mega name.
-    eligible = []   # list of (base_name, mega_row, bst_gain, coverage_gain)
+    eligible = []
 
     for name in team:
-        # Find all Megas whose name contains this Pokemon's name
-        matches = pk_megas[pk_megas['Name'].str.contains(name, case=False)]
+        # Match Mega entries using "Mega {name}" prefix to avoid
+        # substring collisions like "Lucario" matching "Mega Lucario"
+        # and producing "LucarioMega Lucario"
+        pattern = f"^Mega {name}"
+        matches = pk_megas[pk_megas['Name'].str.contains(pattern, case=False, regex=True)]
         if matches.empty:
             continue
 
@@ -267,9 +309,8 @@ def select_mega(pk, pk_megas, team, team_weaknesses):
             mega_bst = mega_row['Total']
             bst_gain = mega_bst - base_bst
 
-            # Calculate type coverage improvement
             mega_types = {mega_row['Type 1'], mega_row['Type 2']} - {'None'}
-            new_types = mega_types - base_types   # types gained by Mega evolving
+            new_types = mega_types - base_types
 
             coverage_gain = 0
             for t in new_types:
@@ -285,7 +326,6 @@ def select_mega(pk, pk_megas, team, team_weaknesses):
     if not eligible:
         return None, None
 
-    # Normalise BST gain across all candidates to 0-5 range
     max_bst_gain = max(e[2] for e in eligible) or 1
     scored = []
     for base_name, mega_row, bst_gain, coverage_gain in eligible:

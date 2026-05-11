@@ -1,6 +1,3 @@
-# Phase 2 — Gym Leaders + Elite Four & Champion
-# Holds gym leader and elite four data per region and exposes helper functions
-# for the team builder to incorporate gym and endgame coverage into scoring.
 GYM_LEADERS = {
     'Kanto': [
         {'name': 'Brock',    'types': ['Rock']},

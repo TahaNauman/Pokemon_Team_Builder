@@ -2,9 +2,6 @@ import random
 from core.type_chart import type_chart as TYPE_CHART
 
 
-# ── Issue 3: Trade evolutions ─────────────────────────────────────────────────
-# These Pokemon can only be obtained by trading so they are excluded from
-# the candidate pool. Their pre-evolutions remain available.
 TRADE_EVOLUTIONS = {
     # Kanto
     'Alakazam', 'Machamp', 'Golem', 'Gengar',
@@ -24,9 +21,6 @@ TRADE_EVOLUTIONS = {
     'Aromatisse', 'Slurpuff',
 }
 
-# ── Issue 1: Form variants ────────────────────────────────────────────────────
-# Maps alternate forms to their base form name so only one
-# appears per team.
 FORM_VARIANTS = {
     'AegislashBlade Forme':   'Aegislash',
     'AegislashShield Forme':  'Aegislash',
@@ -34,9 +28,9 @@ FORM_VARIANTS = {
     'GourgeistAverage Size':  'Gourgeist',
     'GourgeistLarge Size':    'Gourgeist',
     'GourgeistSuper Size':    'Gourgeist',
-    'WormadamPlant':    'Wormadam',
-    'WormadamSandy':    'Wormadam',
-    'WormadamTrash':    'Wormadam',
+    'WormadamPlant Cloak':    'Wormadam',
+    'WormadamSandy Cloak':    'Wormadam',
+    'WormadamTrash Cloak':    'Wormadam',
     'LycanrocMidday':   'Lycanroc',
     'LycanrocMidnight': 'Lycanroc',
     'LycanrocDusk':     'Lycanroc',
@@ -46,17 +40,21 @@ FORM_VARIANTS = {
     'OricorioSensu':    'Oricorio',
     'GastrodonEast':    'Gastrodon',
     'GastrodonWest':    'Gastrodon',
-    'RotomHeat':        'Rotom',
-    'RotomWash':        'Rotom',
-    'RotomFrost':       'Rotom',
-    'RotomFan':         'Rotom',
-    'RotomMow':         'Rotom',
+    'RotomHeat Rotom':        'Rotom',
+    'RotomWash Rotom':        'Rotom',
+    'RotomFrost Rotom':       'Rotom',
+    'RotomFan Rotom':         'Rotom',
+    'RotomMow Rotom':         'Rotom',
     'MeowsticMale':     'Meowstic',
     'MeowsticFemale':   'Meowstic',
     'WishiwashiSolo':   'Wishiwashi',
     'WishiwashiSchool': 'Wishiwashi',
     'MiniorMeteor':     'Minior',
     'MiniorCore':       'Minior',
+    'PumpkabooSmall Size': 'Pumpkaboo',
+    'PumpkabooAverage Size': 'Pumpkaboo',  
+    'PumpkabooLarge Size': 'Pumpkaboo',
+    'PumpkabooSuper Size': 'Pumpkaboo',
 }
 
 
@@ -119,21 +117,18 @@ def score_candidate(row, covered_weaknesses, team_types, gym_types=None, elite_f
     for c_type in c_types:
         chart = TYPE_CHART.get(c_type, {'strong_against': [], 'weak_against': [], 'immune_to': []})
 
-        # ── Weakness coverage (primary driver) ───────────────────────────────
         for w in covered_weaknesses:
             if w in chart['strong_against']:
                 score += 3
             elif w in chart['immune_to']:
                 score += 5
 
-        # ── Gym coverage (secondary, +1/+2) ─────────────────────────────────
         for g in gym_types:
             if g in chart['strong_against']:
                 score += 1
             elif g in chart['immune_to']:
                 score += 2
 
-        # ── Elite Four + Champion coverage (+2/+3) ───────────────────────────
         for e in elite_four_types:
             if e in chart['strong_against']:
                 score += 2

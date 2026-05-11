@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
-from core.loader import ALL_STARTERS
+from core.loader import ALL_STARTERS, FINAL_EVOLUTIONS
 from core.gym_leaders import (
     GYM_LEADERS, ELITE_FOUR,
     get_gym_types, get_elite_four_types
@@ -183,18 +183,7 @@ class InputWindow(QWidget):
         gen_no = gen_map[region]
         pk_region = self.pk[self.pk['Generation'] == gen_no]
 
-        # Final evolution mapping
-        final_evolution = {
-            'Bulbasaur': 'Venusaur',   'Charmander': 'Charizard',  'Squirtle': 'Blastoise',
-            'Chikorita': 'Meganium',   'Cyndaquil': 'Typhlosion',  'Totodile': 'Feraligatr',
-            'Treecko':   'Sceptile',   'Torchic': 'Blaziken',      'Mudkip': 'Swampert',
-            'Turtwig':   'Torterra',   'Chimchar': 'Infernape',    'Piplup': 'Empoleon',
-            'Snivy':     'Serperior',  'Tepig': 'Emboar',          'Oshawott': 'Samurott',
-            'Chespin':   'Chesnaught', 'Fennekin': 'Delphox',      'Froakie': 'Greninja',
-            'Rowlet':    'Decidueye',  'Litten': 'Incineroar',     'Popplio': 'Primarina'
-        }
-
-        final_form = final_evolution[starter]
+        final_form = FINAL_EVOLUTIONS[starter]
         unchosen = [s for s in ALL_STARTERS[region] if s != starter]
 
         types, weaknesses = get_starter_weaknesses(self.pk, final_form)

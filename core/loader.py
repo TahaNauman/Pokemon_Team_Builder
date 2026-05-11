@@ -10,6 +10,16 @@ ALL_STARTERS = {
     'Alola':  ['Rowlet', 'Litten', 'Popplio']
 }
 
+FINAL_EVOLUTIONS = {
+        'Bulbasaur': 'Venusaur',   'Charmander': 'Charizard',  'Squirtle': 'Blastoise',
+        'Chikorita': 'Meganium',   'Cyndaquil': 'Typhlosion',  'Totodile': 'Feraligatr',
+        'Treecko':   'Sceptile',   'Torchic': 'Blaziken',      'Mudkip': 'Swampert',
+        'Turtwig':   'Torterra',   'Chimchar': 'Infernape',    'Piplup': 'Empoleon',
+        'Snivy':     'Serperior',  'Tepig': 'Emboar',          'Oshawott': 'Samurott',
+        'Chespin':   'Chesnaught', 'Fennekin': 'Delphox',      'Froakie': 'Greninja',
+        'Rowlet':    'Decidueye',  'Litten': 'Incineroar',     'Popplio': 'Primarina'
+    }
+
 def load_data(pokemon_path="data/Pokemon.csv", evo_path="data/evolution_families.csv"):
     """Load and clean the Pokemon dataset and evolution families CSV."""
     pk = pd.read_csv(pokemon_path)
@@ -38,15 +48,7 @@ def select_region():
 def select_starter(region):
     """Prompt the user to select a starter Pokemon for the given region.
     Returns the chosen starter, its final evolution, and the unchosen starters."""
-    final_evolution = {
-        'Bulbasaur': 'Venusaur',   'Charmander': 'Charizard',  'Squirtle': 'Blastoise',
-        'Chikorita': 'Meganium',   'Cyndaquil': 'Typhlosion',  'Totodile': 'Feraligatr',
-        'Treecko':   'Sceptile',   'Torchic': 'Blaziken',      'Mudkip': 'Swampert',
-        'Turtwig':   'Torterra',   'Chimchar': 'Infernape',    'Piplup': 'Empoleon',
-        'Snivy':     'Serperior',  'Tepig': 'Emboar',          'Oshawott': 'Samurott',
-        'Chespin':   'Chesnaught', 'Fennekin': 'Delphox',      'Froakie': 'Greninja',
-        'Rowlet':    'Decidueye',  'Litten': 'Incineroar',     'Popplio': 'Primarina'
-    }
+
     print(f"\nAvailable starters in {region}:")
     for s in ALL_STARTERS[region]:
         print(f"  - {s}")
@@ -55,7 +57,7 @@ def select_starter(region):
         if starter not in ALL_STARTERS[region]:
             print(f"Invalid starter. Choose from: {', '.join(ALL_STARTERS[region])}")
         else:
-            final_form = final_evolution[starter]
+            final_form = FINAL_EVOLUTIONS[starter]
             unchosen = [s for s in ALL_STARTERS[region] if s != starter]
             print(f"\nYou chose {starter} → Final evolution: {final_form}")
             return starter, final_form, unchosen

@@ -17,7 +17,7 @@ FINAL_EVOLUTIONS = {
         'Turtwig':   'Torterra',   'Chimchar': 'Infernape',    'Piplup': 'Empoleon',
         'Snivy':     'Serperior',  'Tepig': 'Emboar',          'Oshawott': 'Samurott',
         'Chespin':   'Chesnaught', 'Fennekin': 'Delphox',      'Froakie': 'Greninja',
-        'Rowlet':    'Decidueye',  'Litten': 'Incineroar',     'Popplio': 'Primarina'
+        # 'Rowlet':    'Decidueye',  'Litten': 'Incineroar',     'Popplio': 'Primarina'
     }
 
 def load_data(pokemon_path="data/Pokemon.csv", evo_path="data/evolution_families.csv"):

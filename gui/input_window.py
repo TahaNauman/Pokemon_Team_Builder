@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
-from core.loader import ALL_STARTERS, FINAL_EVOLUTIONS
+from core.loader import ALL_STARTERS
 from core.gym_leaders import (
     GYM_LEADERS, ELITE_FOUR,
     get_gym_types, get_elite_four_types
@@ -35,25 +35,30 @@ class InputWindow(QWidget):
 
     def _build_ui(self):
         main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(24, 24, 24, 24)
-        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
         # ── Left panel: inputs ────────────────────────────────────────────────
-        left_panel = QVBoxLayout()
+        left_widget = QWidget()
+        left_widget.setStyleSheet("background-color: #13131f;")
+        left_panel = QVBoxLayout(left_widget)
+        left_panel.setContentsMargins(48, 0, 48, 0)
         left_panel.setSpacing(16)
+        left_panel.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Title
-        title = QLabel("Pokémon Team Builder")
-        title.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+        title = QLabel("Pokémon\nTeam Builder")
+        title.setFont(QFont("Arial", 32, QFont.Weight.Bold))
         title.setStyleSheet("color: #ffffff;")
+        title.setAlignment(Qt.AlignmentFlag.AlignLeft)
         left_panel.addWidget(title)
 
-        subtitle = QLabel("Select your region and starter to get a recommended team.")
-        subtitle.setWordWrap(True)
-        subtitle.setStyleSheet("color: #aaaaaa; font-size: 12px;")
+        subtitle = QLabel("Select your region and starter\nto get a recommended team.")
+        subtitle.setStyleSheet("color: #aaaaaa; font-size: 13px;")
+        subtitle.setAlignment(Qt.AlignmentFlag.AlignLeft)
         left_panel.addWidget(subtitle)
 
-        left_panel.addSpacing(10)
+        left_panel.addSpacing(24)
 
         # Region label + dropdown
         region_label = QLabel("Region")
@@ -66,6 +71,7 @@ class InputWindow(QWidget):
             'Unova', 'Kalos', 'Alola'
         ])
         self.region_combo.setStyleSheet(self._combo_style())
+        self.region_combo.setFixedHeight(44)
         self.region_combo.currentTextChanged.connect(self._on_region_changed)
         left_panel.addWidget(self.region_combo)
 
@@ -78,20 +84,21 @@ class InputWindow(QWidget):
 
         self.starter_combo = QComboBox()
         self.starter_combo.setStyleSheet(self._combo_style())
+        self.starter_combo.setFixedHeight(44)
         left_panel.addWidget(self.starter_combo)
 
-        left_panel.addSpacing(16)
+        left_panel.addSpacing(24)
 
         # Build Team button
         self.build_btn = QPushButton("Build Team →")
+        self.build_btn.setFixedHeight(52)
         self.build_btn.setStyleSheet("""
             QPushButton {
                 background-color: #e63946;
                 color: white;
                 border: none;
                 border-radius: 8px;
-                padding: 12px 24px;
-                font-size: 14px;
+                font-size: 15px;
                 font-weight: bold;
             }
             QPushButton:hover {
@@ -105,14 +112,15 @@ class InputWindow(QWidget):
         self.build_btn.clicked.connect(self._on_build_clicked)
         left_panel.addWidget(self.build_btn)
 
-        left_panel.addStretch()
-
         # ── Right panel: gym + elite four info ───────────────────────────────
-        right_panel = QVBoxLayout()
-        right_panel.setSpacing(8)
+        right_widget = QWidget()
+        right_widget.setStyleSheet("background-color: #1a1a2e;")
+        right_panel = QVBoxLayout(right_widget)
+        right_panel.setContentsMargins(32, 32, 32, 32)
+        right_panel.setSpacing(12)
 
         info_title = QLabel("Trainers to Beat")
-        info_title.setFont(QFont("Arial", 13, QFont.Weight.Bold))
+        info_title.setFont(QFont("Arial", 16, QFont.Weight.Bold))
         info_title.setStyleSheet("color: #ffffff;")
         right_panel.addWidget(info_title)
 
@@ -120,25 +128,29 @@ class InputWindow(QWidget):
         self.info_box.setReadOnly(True)
         self.info_box.setStyleSheet("""
             QTextEdit {
-                background-color: #1e1e2e;
+                background-color: #13131f;
                 color: #cccccc;
-                border: 1px solid #444;
+                border: 1px solid #333;
                 border-radius: 8px;
-                padding: 10px;
-                font-size: 11px;
+                padding: 12px;
+                font-size: 12px;
+                font-family: Consolas, monospace;
+            }
+            QScrollBar:vertical {
+                background: #1e1e2e;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #4a4a8a;
+                border-radius: 4px;
             }
         """)
         right_panel.addWidget(self.info_box)
 
         # ── Combine panels ────────────────────────────────────────────────────
-        main_layout.addLayout(left_panel, stretch=1)
-
-        divider = QFrame()
-        divider.setFrameShape(QFrame.Shape.VLine)
-        divider.setStyleSheet("color: #444;")
-        main_layout.addWidget(divider)
-
-        main_layout.addLayout(right_panel, stretch=1)
+        main_layout.addWidget(left_widget, stretch=1)
+        main_layout.addWidget(right_widget, stretch=1)
 
         # Trigger initial population
         self._on_region_changed(self.region_combo.currentText())
@@ -183,7 +195,18 @@ class InputWindow(QWidget):
         gen_no = gen_map[region]
         pk_region = self.pk[self.pk['Generation'] == gen_no]
 
-        final_form = FINAL_EVOLUTIONS[starter]
+        # Final evolution mapping
+        final_evolution = {
+            'Bulbasaur': 'Venusaur',   'Charmander': 'Charizard',  'Squirtle': 'Blastoise',
+            'Chikorita': 'Meganium',   'Cyndaquil': 'Typhlosion',  'Totodile': 'Feraligatr',
+            'Treecko':   'Sceptile',   'Torchic': 'Blaziken',      'Mudkip': 'Swampert',
+            'Turtwig':   'Torterra',   'Chimchar': 'Infernape',    'Piplup': 'Empoleon',
+            'Snivy':     'Serperior',  'Tepig': 'Emboar',          'Oshawott': 'Samurott',
+            'Chespin':   'Chesnaught', 'Fennekin': 'Delphox',      'Froakie': 'Greninja',
+            'Rowlet':    'Decidueye',  'Litten': 'Incineroar',     'Popplio': 'Primarina'
+        }
+
+        final_form = final_evolution[starter]
         unchosen = [s for s in ALL_STARTERS[region] if s != starter]
 
         types, weaknesses = get_starter_weaknesses(self.pk, final_form)

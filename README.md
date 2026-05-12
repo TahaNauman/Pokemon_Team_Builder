@@ -4,7 +4,7 @@ A PyQt6 desktop application that builds an optimal 6-Pokemon team for any region
 
 ## Features
 
-- **7 Regions** — Kanto through Kalos (Gen 1–6) with per-region game version mapping
+- **6 Regions** — Kanto through Kalos (Gen 1–6) with per-region game version mapping
 - **Starter-Aware** — Blocks evolution families of all starter Pokemon for a diverse team
 - **Weakness Coverage** — Scores candidates by immunities (+5) and resistances (+3) to the starter's weaknesses
 - **Gym + Elite Four Optimization** — Prioritizes Pokemon that shore up defense against every Gym Leader, Elite Four member, and Champion

@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QFont, QPixmap
 
+from core.team_builder import evaluate_team
 from gui.sprites import fetch_sprite, fetch_location
 
 
@@ -42,10 +43,11 @@ class PokemonCard(QFrame):
         'Steel':    '#B8B8D0', 'Fairy':    '#EE99AC', 'Normal':   '#A8A878',
     }
 
-    def __init__(self, name, type1, type2, bst, is_mega_candidate=False):
+    def __init__(self, name, type1, type2, bst, is_mega_candidate=False, mega_row=None):
         super().__init__()
         self.name = name
         self.is_mega_candidate = is_mega_candidate
+        self.mega_row = mega_row
 
         self._build_ui(name, type1, type2, bst)
 
@@ -54,7 +56,6 @@ class PokemonCard(QFrame):
         self.setMaximumWidth(220)
         self.setFrameShape(QFrame.Shape.Box)
 
-        # Mega candidate gets a gold border, others get a subtle grey
         if self.is_mega_candidate:
             self.setStyleSheet("""
                 QFrame {
@@ -77,17 +78,6 @@ class PokemonCard(QFrame):
         layout.setSpacing(6)
         layout.setContentsMargins(10, 10, 10, 10)
 
-        # Mega badge
-        if self.is_mega_candidate:
-            mega_badge = QLabel("★ MEGA")
-            mega_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            mega_badge.setStyleSheet("""
-                color: #FFD700;
-                font-size: 10px;
-                font-weight: bold;
-            """)
-            layout.addWidget(mega_badge)
-
         # Sprite placeholder — gets filled by worker thread
         self.sprite_label = QLabel("Loading...")
         self.sprite_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -102,7 +92,60 @@ class PokemonCard(QFrame):
         name_label.setStyleSheet("color: #ffffff; border: none;")
         layout.addWidget(name_label)
 
-        # Type badges
+        # Base type badges
+        layout.addLayout(self._type_badges(type1, type2))
+
+        # Base BST
+        bst_label = QLabel(f"BST: {bst}")
+        bst_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        bst_label.setStyleSheet("color: #aaaaaa; font-size: 10px; border: none;")
+        layout.addWidget(bst_label)
+
+        # ── Mega section ─────────────────────────────────────────────────────
+        if self.is_mega_candidate and self.mega_row is not None:
+            # Divider
+            divider = QLabel("──────────────")
+            divider.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            divider.setStyleSheet("color: #FFD700; font-size: 8px; border: none;")
+            layout.addWidget(divider)
+
+            # Mega name
+            mega_display = self.mega_row['Name'].replace(name, '', 1).strip()
+            mega_name_label = QLabel(f"★ {mega_display}")
+            mega_name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            mega_name_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+            mega_name_label.setStyleSheet("color: #FFD700; border: none;")
+            layout.addWidget(mega_name_label)
+
+            # Only show Mega type badges if the type actually changes
+            base_types = {type1, type2 or 'None'}
+            mega_t1 = self.mega_row['Type 1']
+            mega_t2 = self.mega_row['Type 2'] if self.mega_row['Type 2'] != 'None' else None
+            mega_types = {mega_t1, mega_t2 or 'None'}
+
+            if mega_types != base_types:
+                type_change_label = QLabel("Type changes to:")
+                type_change_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                type_change_label.setStyleSheet("color: #aaaaaa; font-size: 9px; border: none;")
+                layout.addWidget(type_change_label)
+                layout.addLayout(self._type_badges(mega_t1, mega_t2))
+
+            # BST with gain shown
+            bst_gain = self.mega_row['Total'] - bst
+            mega_bst_label = QLabel(f"BST: {self.mega_row['Total']}  (+{bst_gain})")
+            mega_bst_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            mega_bst_label.setStyleSheet("color: #FFD700; font-size: 10px; border: none;")
+            layout.addWidget(mega_bst_label)
+
+        # Location placeholder — gets filled by worker thread
+        self.location_label = QLabel("Fetching location...")
+        self.location_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.location_label.setWordWrap(True)
+        self.location_label.setStyleSheet("color: #88cc88; font-size: 9px; border: none;")
+        layout.addWidget(self.location_label)
+
+    def _type_badges(self, type1, type2):
+        """Build a horizontal layout of type badges."""
         type_layout = QHBoxLayout()
         type_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         type_layout.setSpacing(4)
@@ -123,20 +166,7 @@ class PokemonCard(QFrame):
                 """)
                 type_layout.addWidget(badge)
 
-        layout.addLayout(type_layout)
-
-        # BST
-        bst_label = QLabel(f"BST: {bst}")
-        bst_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        bst_label.setStyleSheet("color: #aaaaaa; font-size: 10px; border: none;")
-        layout.addWidget(bst_label)
-
-        # Location placeholder — gets filled by worker thread
-        self.location_label = QLabel("Fetching location...")
-        self.location_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.location_label.setWordWrap(True)
-        self.location_label.setStyleSheet("color: #88cc88; font-size: 9px; border: none;")
-        layout.addWidget(self.location_label)
+        return type_layout
 
     def set_sprite(self, pixmap):
         """Set the sprite image once fetched."""
@@ -156,7 +186,7 @@ class PokemonCard(QFrame):
 class ResultsWindow(QWidget):
     """Window 2 — displays the recommended team in a 2x3 grid."""
 
-    def __init__(self, pk, team, mega_base, mega_row, region, evolution_families, input_window):        
+    def __init__(self, pk, team, mega_base, mega_row, region, evolution_families, input_window):
         super().__init__()
         self.pk = pk
         self.team = team
@@ -165,8 +195,9 @@ class ResultsWindow(QWidget):
         self.region = region
         self.evolution_families = evolution_families
         self.input_window = input_window
-        self.workers = []   # keep references so threads aren't garbage collected
+        self.workers = []
         self.cards = []
+        self.evaluation = evaluate_team(pk, team)
 
         self.setWindowTitle("Your Recommended Team")
         self.setMinimumSize(520, 800)
@@ -193,13 +224,53 @@ class ResultsWindow(QWidget):
         region_label.setStyleSheet("color: #aaaaaa; font-size: 12px;")
         main_layout.addWidget(region_label)
 
-        # Mega note if applicable
-        if self.mega_base and self.mega_row is not None:
-            mega_name = self.mega_row['Name'].replace(self.mega_base, '', 1).strip()
-            mega_note = QLabel(f"★ {self.mega_base} can Mega Evolve into {mega_name}")
-            mega_note.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            mega_note.setStyleSheet("color: #FFD700; font-size: 11px;")
-            main_layout.addWidget(mega_note)
+        # ── Evaluation score panel ────────────────────────────────────────────
+        score_frame = QFrame()
+        score_frame.setStyleSheet("""
+            QFrame {
+                background-color: #1e1e2e;
+                border: 1px solid #444;
+                border-radius: 8px;
+            }
+        """)
+        score_layout = QVBoxLayout(score_frame)
+        score_layout.setContentsMargins(16, 10, 16, 10)
+        score_layout.setSpacing(6)
+
+        # Combined score
+        e = self.evaluation
+        combined_label = QLabel(f"Team Score: {e['combined']}/100")
+        combined_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        combined_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        combined_label.setStyleSheet("color: #ffffff; border: none;")
+        score_layout.addWidget(combined_label)
+
+        # Breakdown row
+        breakdown = QHBoxLayout()
+        breakdown.setSpacing(20)
+
+        for label, value in [
+            (f"Type Coverage", f"{e['types_covered']}/{e['total_types']}  ({e['coverage_score']}%)"),
+            (f"Weakness Resistance", f"{e['weakness_resistance']}%  ({e['types_weak_to']} weak)"),
+            (f"Avg BST", f"{e['avg_bst']}"),
+        ]:
+            item_layout = QVBoxLayout()
+            item_layout.setSpacing(2)
+
+            lbl = QLabel(label)
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            lbl.setStyleSheet("color: #aaaaaa; font-size: 10px; border: none;")
+
+            val = QLabel(value)
+            val.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            val.setStyleSheet("color: #88cc88; font-size: 11px; font-weight: bold; border: none;")
+
+            item_layout.addWidget(lbl)
+            item_layout.addWidget(val)
+            breakdown.addLayout(item_layout)
+
+        score_layout.addLayout(breakdown)
+        main_layout.addWidget(score_frame)
 
         # 2x3 grid of cards wrapped in a scroll area
         scroll = QScrollArea()
@@ -234,7 +305,11 @@ class ResultsWindow(QWidget):
             bst = row_data['Total']
             is_mega = (name == self.mega_base)
 
-            card = PokemonCard(name, type1, type2, bst, is_mega_candidate=is_mega)
+            card = PokemonCard(
+                name, type1, type2, bst,
+                is_mega_candidate=is_mega,
+                mega_row=self.mega_row if is_mega else None
+            )
             self.cards.append(card)
 
             row = i // 2
@@ -259,8 +334,17 @@ class ResultsWindow(QWidget):
                 background-color: #6a6aaa;
             }
         """)
-        back_btn.clicked.connect(self.close)
+        back_btn.clicked.connect(self._go_back)
         main_layout.addWidget(back_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+
+    def _go_back(self):
+        """Hide results window and bring input window back to focus."""
+        self.close()
+        self.input_window.build_btn.setEnabled(True)
+        self.input_window.build_btn.setText("Build Team →")
+        self.input_window.show()
+        self.input_window.raise_()
+        self.input_window.activateWindow()
 
     def _start_fetching(self):
         """Spawn a worker thread per Pokemon to fetch sprites and locations."""
